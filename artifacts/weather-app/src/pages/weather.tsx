@@ -7,6 +7,7 @@ interface WeatherData {
   main: { temp: number; feels_like: number; humidity: number };
   weather: { id: number; description: string; icon: string }[];
   wind: { speed: number };
+  coord: { lat: number; lon: number };
 }
 
 export default function WeatherPage() {
@@ -15,6 +16,8 @@ export default function WeatherPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unit, setUnit] = useState<'C' | 'F'>('C');
+  const [places, setPlaces] = useState<{ title: string; pageid: number }[]>([]);
+  const [placesLoading, setPlacesLoading] = useState(false);
 
   const handleSearch = async () => {
     if (!city.trim()) return;
@@ -27,6 +30,7 @@ export default function WeatherPage() {
       if (!apiKey) {
         setError("OpenWeather API key is not configured.");
         setWeather(null);
+        setPlaces([]);
         return;
       }
       
@@ -36,6 +40,7 @@ export default function WeatherPage() {
       if (res.status === 404) {
         setError("City not found. Please try another name.");
         setWeather(null);
+        setPlaces([]);
         return;
       }
       
@@ -45,9 +50,29 @@ export default function WeatherPage() {
       
       const data = await res.json();
       setWeather(data);
+
+      // Fetch nearby Wikipedia places
+      setPlacesLoading(true);
+      try {
+        const { lat, lon } = data.coord;
+        const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=10000&gslimit=5&format=json&origin=*`;
+        const wikiRes = await fetch(wikiUrl);
+        if (wikiRes.ok) {
+          const wikiData = await wikiRes.json();
+          const results = wikiData?.query?.geosearch ?? [];
+          setPlaces(results.slice(0, 3));
+        } else {
+          setPlaces([]);
+        }
+      } catch {
+        setPlaces([]);
+      } finally {
+        setPlacesLoading(false);
+      }
     } catch (err) {
       setError("An error occurred. Please try again later.");
       setWeather(null);
+      setPlaces([]);
     } finally {
       setLoading(false);
     }
@@ -86,6 +111,14 @@ export default function WeatherPage() {
     return 'default';
   };
 
+  const getWeatherSuggestion = (weatherId: number): string => {
+    if (weatherId === 800) return 'Great day for a park walk or outdoor picnic!';
+    if (weatherId >= 801 && weatherId <= 804) return 'Nice clouds — perfect for a scenic drive!';
+    if (weatherId >= 200 && weatherId < 600) return 'Stay cozy indoors with a hot drink!';
+    if (weatherId >= 600 && weatherId < 700) return 'Bundle up and enjoy the winter scenery!';
+    return 'Explore local cafes or museums today!';
+  };
+
   const bgClass = weather ? getBackgroundClass(weather.weather[0].id, weather.main.temp) : 'bg-animated-gradient';
   const sceneType = weather ? getWeatherScene(weather.weather[0].id, weather.wind.speed) : 'default';
 
@@ -117,7 +150,6 @@ export default function WeatherPage() {
         {sceneType === 'sunny' && (
           <div className="sun">
             <div className="sun-rays" />
-            <div className="sun-rays-2" />
           </div>
         )}
         
@@ -131,9 +163,9 @@ export default function WeatherPage() {
         
         {(sceneType === 'rain' || sceneType === 'thunderstorm') && (
           <>
-            <div className="cloud cloud-shape" style={{ top: '-20px', left: '10%', background: 'rgba(100,110,120,0.8)' }} />
-            <div className="cloud cloud-shape" style={{ top: '-30px', left: '40%', background: 'rgba(100,110,120,0.8)' }} />
-            <div className="cloud cloud-shape" style={{ top: '-10px', left: '70%', background: 'rgba(100,110,120,0.8)' }} />
+            <div className="cloud cloud-shape" style={{ top: '-20px', left: '10%' }} />
+            <div className="cloud cloud-shape" style={{ top: '-30px', left: '40%' }} />
+            <div className="cloud cloud-shape" style={{ top: '-10px', left: '70%' }} />
             {raindrops.map((drop, i) => (
               <div 
                 key={i} 
@@ -203,16 +235,16 @@ export default function WeatherPage() {
 
       <main className="w-full max-w-md z-10 flex flex-col gap-6">
         {/* Search Section */}
-        <div className="glass-card rounded-2xl p-2 flex items-center gap-2 transition-all duration-500 hover:bg-white/10">
+        <div className="cartoon-input-wrapper transition-all duration-500">
           <div className="relative flex-1">
-            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
+            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
               value={city}
               onChange={(e) => setCity(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Search city..."
-              className="w-full bg-transparent text-white placeholder:text-white/50 px-12 py-3 outline-none text-lg"
+              className="w-full bg-transparent text-gray-900 placeholder:text-gray-400 px-12 py-3 outline-none text-lg"
               data-testid="input-city"
               disabled={loading}
             />
@@ -220,27 +252,27 @@ export default function WeatherPage() {
           <button
             onClick={handleSearch}
             disabled={loading || !city.trim()}
-            className="glass-button w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+            className="cartoon-button w-12 h-12 flex items-center justify-center shrink-0"
             data-testid="button-search"
             aria-label="Search weather"
           >
             {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin text-white" />
+              <Loader2 className="w-5 h-5 animate-spin text-gray-900" />
             ) : (
-              <Search className="w-5 h-5 text-white" />
+              <Search className="w-5 h-5 text-gray-900" />
             )}
           </button>
         </div>
 
         {/* Content Section */}
-        <div className="glass-card rounded-[2rem] overflow-hidden transition-all duration-700 ease-out min-h-[300px] flex flex-col relative">
+        <div className="cartoon-card overflow-hidden transition-all duration-700 ease-out min-h-[300px] flex flex-col relative">
           
           {error && (
-            <div className="absolute inset-0 p-8 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-300 z-10 bg-black/10 backdrop-blur-sm">
+            <div className="absolute inset-0 p-8 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-300 z-10 bg-black/5 backdrop-blur-sm">
               <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
-                <Cloud className="w-8 h-8 text-red-300" />
+                <Cloud className="w-8 h-8 text-red-400" />
               </div>
-              <p className="text-lg text-white/90 font-medium" data-testid="text-error">
+              <p className="text-lg text-gray-800 font-medium" data-testid="text-error">
                 {error}
               </p>
             </div>
@@ -248,9 +280,9 @@ export default function WeatherPage() {
 
           {!weather && !error && !loading && (
             <div className="absolute inset-0 p-8 flex flex-col items-center justify-center text-center animate-in fade-in duration-500">
-              <Cloud className="w-16 h-16 text-white/20 mb-6 animate-pulse" />
-              <h2 className="text-2xl font-medium text-white/80 mb-2">Atmosphere</h2>
-              <p className="text-white/50">Search for a city to see the weather</p>
+              <Cloud className="w-16 h-16 text-gray-300 mb-6 animate-pulse" />
+              <h2 className="text-2xl font-medium text-gray-700 mb-2">Atmosphere</h2>
+              <p className="text-gray-500">Search for a city to see the weather</p>
             </div>
           )}
 
@@ -258,10 +290,10 @@ export default function WeatherPage() {
             <div className="p-8 flex flex-col h-full animate-in slide-in-from-bottom-4 fade-in duration-700">
               <div className="flex justify-between items-start mb-12">
                 <div>
-                  <h1 className="text-4xl font-bold text-white tracking-tight" data-testid="text-city-name">
+                  <h1 className="text-4xl font-bold text-gray-900 tracking-tight" data-testid="text-city-name">
                     {weather.name}
                   </h1>
-                  <p className="text-lg text-white/60 mt-1 font-medium tracking-wide uppercase">
+                  <p className="text-lg text-gray-600 mt-1 font-medium tracking-wide uppercase">
                     {weather.sys.country}
                   </p>
                 </div>
@@ -278,24 +310,24 @@ export default function WeatherPage() {
               <div className="mt-auto">
                 <div className="flex justify-between items-end mb-2">
                   <div className="flex items-baseline gap-4">
-                    <span className="text-8xl font-bold text-white tracking-tighter" data-testid="text-temperature">
+                    <span className="text-8xl font-bold text-gray-900 tracking-tighter" data-testid="text-temperature">
                       {displayTemp(weather.main.temp)}°
                     </span>
                     <div className="flex flex-col pb-2">
-                      <span className="text-xl text-white/90 capitalize font-medium" data-testid="text-description">
+                      <span className="text-xl text-gray-800 capitalize font-medium" data-testid="text-description">
                         {weather.weather[0].description}
                       </span>
-                      <span className="text-white/60">
+                      <span className="text-gray-600">
                         Feels like {displayTemp(weather.main.feels_like)}°
                       </span>
                     </div>
                   </div>
                   <div className="mb-3">
-                    <div className="flex items-center gap-1 bg-white/10 p-1 rounded-lg backdrop-blur-md border border-white/10">
+                    <div className="flex items-center gap-1 bg-gray-100 border-2 border-black rounded-lg p-1">
                       <button
                         onClick={() => setUnit('C')}
                         className={`px-2 py-1 rounded-md text-sm font-bold transition-colors ${
-                          unit === 'C' ? 'bg-white text-black shadow-sm' : 'text-white/70 hover:text-white hover:bg-white/10'
+                          unit === 'C' ? 'bg-yellow-400 text-black border-2 border-black' : 'text-gray-500'
                         }`}
                       >
                         °C
@@ -303,7 +335,7 @@ export default function WeatherPage() {
                       <button
                         onClick={() => setUnit('F')}
                         className={`px-2 py-1 rounded-md text-sm font-bold transition-colors ${
-                          unit === 'F' ? 'bg-white text-black shadow-sm' : 'text-white/70 hover:text-white hover:bg-white/10'
+                          unit === 'F' ? 'bg-yellow-400 text-black border-2 border-black' : 'text-gray-500'
                         }`}
                       >
                         °F
@@ -313,29 +345,65 @@ export default function WeatherPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mt-8 pt-8 border-t border-white/10">
+              <div className="grid grid-cols-2 gap-4 mt-8 pt-8 border-t border-gray-200">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
-                    <Wind className="w-5 h-5 text-white/70" />
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                    <Wind className="w-5 h-5 text-gray-700" />
                   </div>
                   <div>
-                    <p className="text-white/50 text-sm font-medium">Wind</p>
-                    <p className="text-white font-semibold">{weather.wind.speed} m/s</p>
+                    <p className="text-gray-500 text-sm font-medium">Wind</p>
+                    <p className="text-gray-900 font-semibold">{weather.wind.speed} m/s</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
-                    <Droplets className="w-5 h-5 text-white/70" />
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                    <Droplets className="w-5 h-5 text-gray-700" />
                   </div>
                   <div>
-                    <p className="text-white/50 text-sm font-medium">Humidity</p>
-                    <p className="text-white font-semibold">{weather.main.humidity}%</p>
+                    <p className="text-gray-500 text-sm font-medium">Humidity</p>
+                    <p className="text-gray-900 font-semibold">{weather.main.humidity}%</p>
                   </div>
                 </div>
               </div>
             </div>
           )}
         </div>
+
+        {weather && !error && (
+          <div className="cartoon-card p-6 animate-in slide-in-from-bottom-4 fade-in duration-700">
+            <h2 className="text-xl font-bold text-gray-900 mb-4" style={{ fontFamily: "'Fredoka One', cursive" }}>
+              🗺️ Explore Nearby
+            </h2>
+            {placesLoading && (
+              <div className="flex items-center gap-2 text-gray-500">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Finding nearby places...</span>
+              </div>
+            )}
+            {!placesLoading && places.length > 0 && (
+              <ul className="flex flex-col gap-3">
+                {places.map((place) => (
+                  <li key={place.pageid} className="flex items-center justify-between gap-2 py-2 border-b border-gray-100 last:border-0">
+                    <span className="text-gray-800 font-medium text-sm flex-1">{place.title}</span>
+                    <a
+                      href={`https://en.wikipedia.org/wiki/${encodeURIComponent(place.title)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="cartoon-button-small"
+                    >
+                      Visit
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {!placesLoading && places.length === 0 && (
+              <p className="text-gray-600 text-sm italic">
+                {weather ? getWeatherSuggestion(weather.weather[0].id) : ''}
+              </p>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );
