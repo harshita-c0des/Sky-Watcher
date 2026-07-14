@@ -1,0 +1,35 @@
+Here is the **detailed, advanced prompt** to copy and paste directly into the Replit description box (or Agent chat). This will generate a professional weather app with **dynamic CSS animations** for sun, rain, clouds, and wind.
+
+### Copy This Exact Prompt:
+
+> "Build a highly interactive Weather App using HTML, CSS, and JavaScript that fetches data from the OpenWeatherMap API (using `API_KEY` from Secrets).
+>
+> **Core Features:**
+> 1.  **Search:** Input field for city name with a 'Get Weather' button.
+> 2.  **Data Display:** Show City Name, Temperature (°C/°F toggle), Humidity, Wind Speed, and Weather Description.
+> 3.  **Dynamic Backgrounds:** Change the main background gradient based on temperature (Blue for cold, Orange for hot, Grey for rain).
+>
+> **Advanced Visual Animations (Pure CSS):**
+> Create a central 'Weather Scene' container that changes based on the weather condition code:
+> *   **Sunny/Clear:** Display a glowing **Sun** in the top corner. It must have a `pulse` animation (scaling up/down) and rotating rays.
+> *   **Cloudy/Overcast:** Display 2-3 fluffy **Clouds** that slowly **drift horizontally** across the screen using `@keyframes`.
+> *   **Rain/Drizzle:** Display dark clouds with falling **Raindrops**. The drops should be thin lines animating from top to bottom with a 'looping' effect.
+> *   **Windy:** Display **Wind Lines** (curved semi-transparent borders) moving quickly across the screen, and make the clouds move faster.
+> *   **Thunderstorm:** Darken the scene, add rain, and include a random **Lightning Flash** animation (screen flickering white briefly).
+>
+> **Technical Requirements:**
+> *   Use `async/await` for the API fetch.
+> *   Handle errors (e.g., 'City not found') gracefully with a message.
+> *   Keep all animations smooth (60fps) using CSS `transform` and `opacity`.
+> *   Make the design modern, mobile-responsive, and clean."
+
+### What Will Happen Next:
+1.  **Replit Generates Code:** It will create complex CSS `@keyframes` for the sun pulsing, rain falling, and clouds moving.
+2.  **Logic Integration:** The JavaScript will automatically check the weather code (e.g., `800` for Clear, `500` for Rain) and add the specific CSS class (`.sunny`, `.rainy`) to the scene container.
+3.  **Visual Result:** When you search "London" (if rainy), you will see falling rain. If you search "Dubai" (if sunny), you will see a glowing, pulsing sun.
+
+### How to Add Your Custom Image Later:
+Once this is generated, if you still want your specific color image as the base:
+1.  Upload your image to the file list.
+2.  Tell the Agent: *"Keep all the weather animations (sun, rain, wind), but change the main body background to use my uploaded image `my-image.jpg` instead of the gradient colors. Make sure the animations are still visible on top."*
+

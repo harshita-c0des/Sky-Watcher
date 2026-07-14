@@ -297,3 +297,171 @@
     pointer-events: none;
   }
 }
+
+/* Weather background gradients */
+.bg-weather-rain { background: linear-gradient(135deg, #1a2a3a, #2d3e50, #4a5568); }
+.bg-weather-hot { background: linear-gradient(135deg, #7c2d12, #c2410c, #ea580c); }
+.bg-weather-cold { background: linear-gradient(135deg, #0c1445, #1e3a5f, #2563a8); }
+.bg-weather-cloudy { background: linear-gradient(135deg, #1e293b, #334155, #475569); }
+
+/* Sun */
+@keyframes sun-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); box-shadow: 0 0 40px 20px rgba(251, 191, 36, 0.4); }
+}
+@keyframes rays-spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+.sun {
+  position: absolute;
+  top: 15%;
+  right: 15%;
+  width: 100px;
+  height: 100px;
+  background-color: #fbbf24;
+  border-radius: 50%;
+  animation: sun-pulse 2s ease-in-out infinite;
+  box-shadow: 0 0 20px 10px rgba(251, 191, 36, 0.3);
+}
+.sun-rays {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200px;
+  height: 200px;
+  transform: translate(-50%, -50%);
+  animation: rays-spin 12s linear infinite;
+}
+.sun-rays::before, .sun-rays::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 50%;
+  width: 4px; height: 100%;
+  background: rgba(251, 191, 36, 0.5);
+  transform: translateX(-50%);
+}
+.sun-rays::after {
+  transform: translateX(-50%) rotate(90deg);
+}
+.sun-rays-2 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200px;
+  height: 200px;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.sun-rays-2::before, .sun-rays-2::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 50%;
+  width: 4px; height: 100%;
+  background: rgba(251, 191, 36, 0.5);
+  transform: translateX(-50%);
+}
+.sun-rays-2::after {
+  transform: translateX(-50%) rotate(90deg);
+}
+
+/* Clouds */
+@keyframes cloud-drift {
+  0% { transform: translateX(110vw); }
+  100% { transform: translateX(-30vw); }
+}
+.cloud {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}
+.cloud::before, .cloud::after {
+  content: "";
+  position: absolute;
+  background: inherit;
+  border-radius: 50%;
+}
+.cloud-shape {
+  width: 150px;
+  height: 50px;
+}
+.cloud-shape::before {
+  width: 60px; height: 60px;
+  top: -30px; left: 20px;
+}
+.cloud-shape::after {
+  width: 80px; height: 80px;
+  top: -40px; right: 20px;
+}
+.cloud-1 { top: 15%; animation: cloud-drift 25s linear infinite; }
+.cloud-2 { top: 35%; animation: cloud-drift 35s linear infinite; animation-delay: -15s; }
+.cloud-3 { top: 5%; animation: cloud-drift 20s linear infinite; animation-delay: -5s; }
+
+/* Rain */
+@keyframes raindrop-fall {
+  0% { transform: translateY(-20px); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(110vh); opacity: 0; }
+}
+.raindrop {
+  position: absolute;
+  width: 2px;
+  height: 20px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.8));
+  animation: raindrop-fall 0.8s linear infinite;
+  top: -20px;
+}
+
+/* Lightning */
+@keyframes lightning-flash {
+  0%, 100% { opacity: 0; }
+  5%, 15% { opacity: 1; }
+  10% { opacity: 0; }
+}
+.lightning {
+  position: absolute;
+  inset: 0;
+  background-color: white;
+  opacity: 0;
+  animation: lightning-flash 4s infinite;
+}
+
+/* Wind */
+@keyframes wind-blow {
+  0% { transform: translateX(110vw); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(-20vw); opacity: 0; }
+}
+.wind-line {
+  position: absolute;
+  height: 20px;
+  border-top: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50% 50% 0 0;
+  background: transparent;
+  animation: wind-blow 1.5s linear infinite;
+}
+
+/* Snow */
+@keyframes snow-fall {
+  0% { transform: translateY(-10px) translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(110vh) translateX(20px); opacity: 0; }
+}
+.snowflake {
+  position: absolute;
+  background-color: white;
+  border-radius: 50%;
+  animation: snow-fall 4s linear infinite;
+  top: -10px;
+}
+
+.weather-scene {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
