@@ -10,6 +10,149 @@ interface WeatherData {
   coord: { lat: number; lon: number };
 }
 
+interface ForecastEntry {
+  dt_txt: string;
+  main: { temp_max: number; temp: number };
+  weather: { id: number; icon: string; description: string }[];
+}
+
+interface ForecastDay {
+  dayName: string;
+  tempMax: number;
+  icon: string;
+}
+
+function processForecast(list: ForecastEntry[]): ForecastDay[] {
+  const map: Record<string, { maxTemp: number; icon: string; noonSet: boolean }> = {};
+  for (const entry of list) {
+    const [dateStr, timeStr] = entry.dt_txt.split(' ');
+    if (!map[dateStr]) {
+      map[dateStr] = { maxTemp: -Infinity, icon: entry.weather[0].icon, noonSet: false };
+    }
+    const cur = map[dateStr];
+    const t = Math.max(entry.main.temp_max, entry.main.temp);
+    if (t > cur.maxTemp) cur.maxTemp = t;
+    if (timeStr === '12:00:00') { cur.icon = entry.weather[0].icon; cur.noonSet = true; }
+    else if (!cur.noonSet && timeStr <= '15:00:00') cur.icon = entry.weather[0].icon;
+  }
+  return Object.entries(map).slice(0, 5).map(([dateStr, data]) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return {
+      dayName: new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short' }),
+      tempMax: Math.round(data.maxTemp),
+      icon: data.icon || '01d',
+    };
+  });
+}
+
+function WeeklyForecast({ days, unit }: { days: ForecastDay[]; unit: 'C' | 'F' }) {
+  const toDisplay = (t: number) => unit === 'F' ? Math.round((t * 9) / 5 + 32) : Math.round(t);
+  const SIZE = 300;
+  const CENTER = SIZE / 2;
+  const RADIUS = 105;
+  const HAND_LENGTH = 78;
+  const angleStep = 360 / days.length;
+
+  return (
+    <div className="cartoon-card p-6 animate-in slide-in-from-bottom-4 fade-in duration-700">
+      <h2 className="text-xl font-bold text-gray-900 mb-5" style={{ fontFamily: "'Fredoka One', cursive" }}>
+        📅 Weekly Forecast
+      </h2>
+      <div className="flex justify-center">
+        <div className="clock-face" style={{ width: SIZE, height: SIZE, position: 'relative' }}>
+
+          {/* Tick marks */}
+          {Array.from({ length: 60 }).map((_, i) => {
+            const isMain = i % 5 === 0;
+            return (
+              <div
+                key={i}
+                style={{
+                  position: 'absolute',
+                  top: 5,
+                  left: '50%',
+                  marginLeft: -1,
+                  width: 2,
+                  height: isMain ? 10 : 5,
+                  background: isMain ? '#555' : '#bbb',
+                  borderRadius: 1,
+                  transform: `rotate(${(i / 60) * 360}deg)`,
+                  transformOrigin: `center ${CENTER - 5}px`,
+                }}
+              />
+            );
+          })}
+
+          {/* Rotating hand */}
+          <div
+            className="clock-hand"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              marginLeft: -2,
+              marginTop: -HAND_LENGTH,
+              width: 4,
+              height: HAND_LENGTH,
+            }}
+          />
+
+          {/* Center hub */}
+          <div style={{
+            position: 'absolute',
+            top: '50%', left: '50%',
+            transform: 'translate(-50%,-50%)',
+            width: 16, height: 16,
+            borderRadius: '50%',
+            background: '#FFD700',
+            border: '3px solid #000',
+            zIndex: 10,
+          }} />
+
+          {/* Day nodes */}
+          {days.map((day, i) => {
+            const angleDeg = -90 + i * angleStep;
+            const angleRad = (angleDeg * Math.PI) / 180;
+            const x = CENTER + Math.cos(angleRad) * RADIUS;
+            const y = CENTER + Math.sin(angleRad) * RADIUS;
+            return (
+              <div
+                key={i}
+                className="clock-day"
+                style={{
+                  position: 'absolute',
+                  left: x,
+                  top: y,
+                  animationDelay: `${i * 0.8}s`,
+                }}
+              >
+                <img
+                  src={`https://openweathermap.org/img/wn/${day.icon}.png`}
+                  alt=""
+                  style={{ width: 30, height: 30, display: 'block' }}
+                />
+                <span className="clock-day-name">{day.dayName}</span>
+                <span className="clock-day-temp">{toDisplay(day.tempMax)}°</span>
+              </div>
+            );
+          })}
+
+          {/* Inner ring decoration */}
+          <div style={{
+            position: 'absolute',
+            top: '50%', left: '50%',
+            transform: 'translate(-50%,-50%)',
+            width: 70, height: 70,
+            borderRadius: '50%',
+            border: '2px dashed rgba(0,0,0,0.12)',
+            pointerEvents: 'none',
+          }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function WeatherPage() {
   const [city, setCity] = useState('');
   const [weather, setWeather] = useState<WeatherData | null>(null);
@@ -18,13 +161,17 @@ export default function WeatherPage() {
   const [unit, setUnit] = useState<'C' | 'F'>('C');
   const [places, setPlaces] = useState<{ title: string; pageid: number }[]>([]);
   const [placesLoading, setPlacesLoading] = useState(false);
+  const [forecast, setForecast] = useState<ForecastDay[]>([]);
+  const [forecastLoading, setForecastLoading] = useState(false);
 
   const resetDisplay = () => {
     setWeather(null);
     setPlaces([]);
+    setForecast([]);
     setError(null);
     setLoading(false);
     setPlacesLoading(false);
+    setForecastLoading(false);
   };
 
   const handleSearch = async () => {
@@ -62,23 +209,37 @@ export default function WeatherPage() {
       const data = await res.json();
       setWeather(data);
 
-      // Fetch nearby Wikipedia places
+      // Fetch Wikipedia places + 5-day forecast in parallel
       setPlacesLoading(true);
+      setForecastLoading(true);
       try {
         const { lat, lon } = data.coord;
-        const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=10000&gslimit=5&format=json&origin=*`;
-        const wikiRes = await fetch(wikiUrl);
+        const [wikiRes, forecastRes] = await Promise.all([
+          fetch(`https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=10000&gslimit=5&format=json&origin=*`),
+          fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(city.trim())}&appid=${apiKey}&units=metric&cnt=40`),
+        ]);
+
+        // Wikipedia
         if (wikiRes.ok) {
           const wikiData = await wikiRes.json();
-          const results = wikiData?.query?.geosearch ?? [];
-          setPlaces(results.slice(0, 3));
+          setPlaces((wikiData?.query?.geosearch ?? []).slice(0, 3));
         } else {
           setPlaces([]);
         }
+
+        // Forecast
+        if (forecastRes.ok) {
+          const forecastData = await forecastRes.json();
+          setForecast(processForecast(forecastData.list ?? []));
+        } else {
+          setForecast([]);
+        }
       } catch {
         setPlaces([]);
+        setForecast([]);
       } finally {
         setPlacesLoading(false);
+        setForecastLoading(false);
       }
     } catch (err) {
       setError("An error occurred. Please try again later.");
@@ -388,6 +549,7 @@ export default function WeatherPage() {
             <h2 className="text-xl font-bold text-gray-900 mb-4" style={{ fontFamily: "'Fredoka One', cursive" }}>
               🗺️ Explore Nearby
             </h2>
+
             {placesLoading && (
               <div className="flex items-center gap-2 text-gray-500">
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -417,6 +579,17 @@ export default function WeatherPage() {
               </p>
             )}
           </div>
+        )}
+
+        {weather && !error && (
+          forecastLoading ? (
+            <div className="cartoon-card p-6 flex items-center gap-2 text-gray-500 animate-in fade-in duration-500">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span style={{ fontFamily: "'Fredoka One', cursive" }}>Loading forecast…</span>
+            </div>
+          ) : forecast.length > 0 ? (
+            <WeeklyForecast days={forecast} unit={unit} />
+          ) : null
         )}
       </main>
     </div>
