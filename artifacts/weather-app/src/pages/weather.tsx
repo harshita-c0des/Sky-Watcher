@@ -19,8 +19,19 @@ export default function WeatherPage() {
   const [places, setPlaces] = useState<{ title: string; pageid: number }[]>([]);
   const [placesLoading, setPlacesLoading] = useState(false);
 
+  const resetDisplay = () => {
+    setWeather(null);
+    setPlaces([]);
+    setError(null);
+    setLoading(false);
+    setPlacesLoading(false);
+  };
+
   const handleSearch = async () => {
-    if (!city.trim()) return;
+    if (!city.trim()) {
+      resetDisplay();
+      return;
+    }
     
     setLoading(true);
     setError(null);
@@ -241,7 +252,10 @@ export default function WeatherPage() {
             <input
               type="text"
               value={city}
-              onChange={(e) => setCity(e.target.value)}
+              onChange={(e) => {
+                setCity(e.target.value);
+                if (!e.target.value.trim()) resetDisplay();
+              }}
               onKeyDown={handleKeyDown}
               placeholder="Search city..."
               className="w-full bg-transparent text-gray-900 placeholder:text-gray-400 px-12 py-3 outline-none text-lg"
