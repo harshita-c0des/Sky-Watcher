@@ -19,9 +19,7 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-const basePath = process.env.BASE_PATH;
-
-if (!basePath) {
+const basePath = process.env.NODE_
   throw new Error(
     'BASE_PATH environment variable is required but was not provided.',
   );
@@ -61,8 +59,8 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname),
   build: {
-    outDir: path.resolve(import.meta.dirname, 'dist/public'),
-    emptyOutDir: true,
+    outDir: '.',
+    emptyOutDir:false,
   },
   server: {
     port,
